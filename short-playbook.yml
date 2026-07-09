@@ -277,7 +277,6 @@
       ansible.builtin.git:
         repo: git@github.hpe.com:yannick-koehler/ssopms-build.git
         dest: "{{ base_dir }}/ssopms-build"
-        depth: 1
         accept_hostkey: true
       become_user: "{{ ansible_user }}"
 
@@ -318,6 +317,15 @@
         chdir: "{{ base_dir }}/ssopms-build"
       become_user: "{{ ansible_user }}"
       changed_when: true
+
+    - name: Checkout ssopms-build branch ssopms-mar-01-2026
+      ansible.builtin.git:
+        repo: git@github.hpe.com:yannick-koehler/ssopms-build.git
+        dest: "{{ base_dir }}/ssopms-build"
+        version: ssopms-mar-01-2026
+        update: true
+        accept_hostkey: true
+      become_user: "{{ ansible_user }}"
 
   handlers:
     - name: Restart Docker
