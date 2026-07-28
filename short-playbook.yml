@@ -213,11 +213,98 @@
 
     - name: Copy SSH private key to remote user
       ansible.builtin.copy:
-        src: "{{ ansible_ssh_private_key_file }}"
-        dest: "/home/{{ ansible_user }}/.ssh/{{ ansible_ssh_private_key_file | basename }}"
+        src: "{{ ansible_ssh_private_key_GHEC }}"
+        dest: "/home/{{ ansible_user }}/.ssh/{{ ansible_ssh_private_key_GHEC | basename }}"
         owner: "{{ ansible_user }}"
         group: "{{ ansible_user }}"
         mode: "0600"
+
+    - name: Copy 2nd SSH private key to remote user
+      ansible.builtin.copy:
+        src: "{{ ansible_ssh_private_key_github_HPE }}"
+        dest: "/home/{{ ansible_user }}/.ssh/{{ ansible_ssh_private_key_github_HPE | basename }}"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0600"
+
+    - name: Copy Gitea SSH private key to remote user
+      ansible.builtin.copy:
+        src: "{{ ansible_ssh_private_key_gitea }}"
+        dest: "/home/{{ ansible_user }}/.ssh/{{ ansible_ssh_private_key_gitea | basename }}"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0600"
+
+    - name: Copy SSH public key to remote user
+      ansible.builtin.copy:
+        src: "{{ ansible_ssh_private_key_GHEC }}.pub"
+        dest: "/home/{{ ansible_user }}/.ssh/{{ ansible_ssh_private_key_GHEC | basename }}.pub"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0644"
+
+    - name: Copy 2nd SSH public key to remote user
+      ansible.builtin.copy:
+        src: "{{ ansible_ssh_private_key_github_HPE }}.pub"
+        dest: "/home/{{ ansible_user }}/.ssh/{{ ansible_ssh_private_key_github_HPE | basename }}.pub"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0644"
+
+    - name: Copy stash SSH private key to remote user
+      ansible.builtin.copy:
+        src: "{{ ansible_ssh_private_key_stash }}"
+        dest: "/home/{{ ansible_user }}/.ssh/{{ ansible_ssh_private_key_stash | basename }}"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0600"
+
+    - name: Copy stash SSH public key to remote user
+      ansible.builtin.copy:
+        src: "{{ ansible_ssh_private_key_stash }}.pub"
+        dest: "/home/{{ ansible_user }}/.ssh/{{ ansible_ssh_private_key_stash | basename }}.pub"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0644"
+
+    - name: Copy Gitea SSH public key to remote user
+      ansible.builtin.copy:
+        src: "{{ ansible_ssh_private_key_gitea }}.pub"
+        dest: "/home/{{ ansible_user }}/.ssh/{{ ansible_ssh_private_key_gitea | basename }}.pub"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0644"
+
+    - name: Create SSH config for GHEC and github.hpe.com identities
+      ansible.builtin.copy:
+        dest: "/home/{{ ansible_user }}/.ssh/config"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0600"
+        content: |
+          Host github.com
+            HostName github.com
+            User git
+            IdentityFile ~/.ssh/{{ ansible_ssh_private_key_GHEC | basename }}
+            IdentitiesOnly yes
+
+          Host github.hpe.com
+            HostName github.hpe.com
+            User git
+            IdentityFile ~/.ssh/{{ ansible_ssh_private_key_github_HPE | basename }}
+            IdentitiesOnly yes
+
+          Host stash.arubanetworks.com
+            HostName stash.arubanetworks.com
+            User git
+            IdentityFile ~/.ssh/{{ ansible_ssh_private_key_stash | basename }}
+            IdentitiesOnly yes
+
+          Host slraos-ykoehler.arubacorp.net
+            HostName slraos-ykoehler.arubacorp.net
+            User git
+            IdentityFile ~/.ssh/{{ ansible_ssh_private_key_gitea | basename }}
+            IdentitiesOnly yes
 
     - name: Copy build env file to remote user
       ansible.builtin.copy:
@@ -251,14 +338,6 @@
         regexp: "^FIXGID="
         line: "FIXGID={{ docker_group_info.stdout.split(':')[2] }}"
 
-    - name: Copy SSH public key to remote user
-      ansible.builtin.copy:
-        src: "{{ ansible_ssh_private_key_file }}.pub"
-        dest: "/home/{{ ansible_user }}/.ssh/{{ ansible_ssh_private_key_file | basename }}.pub"
-        owner: "{{ ansible_user }}"
-        group: "{{ ansible_user }}"
-        mode: "0644"
-
     - name: Increase inotify file watch limit for VS Code
       ansible.posix.sysctl:
         name: fs.inotify.max_user_watches
@@ -273,9 +352,15 @@
         line: "10.74.128.57 github.hpe.com"
         state: present
 
+    - name: Add Gitea to /etc/hosts
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        line: "10.82.23.153 slraos-ykoehler.arubacorp.net"
+        state: present
+
     - name: Clone ssopms-build repo
       ansible.builtin.git:
-        repo: git@github.hpe.com:yannick-koehler/ssopms-build.git
+        repo: git@slraos-ykoehler.arubacorp.net:SSOPMS/ssopms-build.git
         dest: "{{ base_dir }}/ssopms-build"
         accept_hostkey: true
       become_user: "{{ ansible_user }}"
@@ -292,7 +377,7 @@
         cmd: /tmp/aws/install --update
         creates: /usr/local/bin/aws
 
-    - name: Read build env filea
+    - name: Read build env files
       ansible.builtin.slurp:
         src: "/home/{{ ansible_user }}/.env"
       register: build_env_content
